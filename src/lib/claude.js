@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { supabase } from './supabase';
 
 const CLAUDE_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY;
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -64,7 +65,10 @@ Since you are a ghostwriter, you must follow the style, tone, and voice of the b
     });
 
     if (message.content && message.content[0] && message.content[0].text) {
-      return message.content[0].text;
+      if (platform === 'twitter') {
+        return message.content[0].text.split('\n').filter(line => line.trim());
+      }
+      return [message.content[0].text];
     } else {
       throw new Error('Invalid response format from Claude API');
     }
@@ -92,6 +96,29 @@ export async function sendMessage(message) {
     return data.response;
   } catch (error) {
     console.error('Error in sendMessage:', error);
+    throw error;
+  }
+}
+
+export async function saveContent(content, platform) {
+  try {
+    const { data, error } = await supabase
+      .from('saved_content')
+      .insert([
+        {
+          content,
+          platform,
+          created_at: new Date().toISOString()
+        }
+      ]);
+
+    if (error) {
+      throw error;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error saving content:', error);
     throw error;
   }
 } 
