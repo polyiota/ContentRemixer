@@ -31,6 +31,37 @@ function App() {
     }
   }
 
+  const parseTweets = (tweetText) => {
+    if (!tweetText) return [];
+    
+    // Split the text into lines
+    const lines = tweetText.split('\n');
+    
+    // Find the index where the actual tweets start (usually after "Here are 5 engaging tweets...")
+    const startIndex = lines.findIndex(line => 
+      line.trim().match(/^\d+\./) // Looks for lines starting with numbers and period
+    );
+    
+    // If we found the start of tweets, remove the intro text
+    const tweetLines = startIndex !== -1 
+      ? lines.slice(startIndex).join('\n')
+      : tweetText;
+      
+    // Split on numbered lines and filter empty lines
+    return tweetLines
+      .split(/(?:\r?\n){2,}/)
+      .filter(tweet => tweet.trim() && tweet.trim().match(/^\d+\./)); // Only keep numbered tweets
+  };
+
+  const getCharacterCount = (tweet) => {
+    // Remove numbers/bullets from start and trim
+    const cleanTweet = tweet.replace(/^(\d+\.|-)/, '').trim();
+    return {
+      current: cleanTweet.length,
+      remaining: 280 - cleanTweet.length
+    };
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -97,7 +128,7 @@ function App() {
             ))}
           </div>
 
-          {/* Output Sections */}
+          {/* Modified Output Sections */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {Object.entries(outputs).map(([platform, output]) => (
               <div
@@ -107,10 +138,40 @@ function App() {
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 capitalize">
                   {platform}
                 </h2>
-                <div className="bg-gray-50 dark:bg-gray-700 rounded p-3 min-h-[100px]">
-                  <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                    {output || 'Remixed content will appear here...'}
-                  </p>
+                <div className="bg-gray-50 dark:bg-gray-700 rounded p-3">
+                  {platform === 'twitter' && output ? (
+                    <div className="space-y-4">
+                      {parseTweets(output).map((tweet, index) => (
+                        <div 
+                          key={index}
+                          className="relative group bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-600"
+                        >
+                          <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap mb-2">
+                            {tweet.replace(/^(\d+\.|-)/, '').trim()}
+                          </p>
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-gray-500 dark:text-gray-400">
+                              {getCharacterCount(tweet).current}/280 
+                              ({getCharacterCount(tweet).remaining} remaining)
+                            </span>
+                            <button
+                              onClick={() => navigator.clipboard.writeText(tweet.replace(/^(\d+\.|-)/, '').trim())}
+                              className="text-blue-500 hover:text-blue-600 dark:text-blue-400 
+                                       dark:hover:text-blue-300 transition-colors"
+                            >
+                              Copy Tweet
+                            </button>
+                          </div>
+                          <div className="absolute inset-0 bg-blue-500 opacity-0 group-hover:opacity-5 
+                                        transition-opacity rounded pointer-events-none" />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                      {output || 'Remixed content will appear here...'}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

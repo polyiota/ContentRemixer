@@ -10,9 +10,47 @@ const anthropic = new Anthropic({
 
 export async function remixContent(text, platform) {
   const prompts = {
-    twitter: "Rewrite this as an engaging tweet, keeping it under 280 characters. Make it punchy and attention-grabbing while maintaining the key message:",
-    linkedin: "Rewrite this as a professional LinkedIn post. Add relevant business context and maintain a professional tone while being engaging:",
-    instagram: "Rewrite this as an Instagram caption. Make it casual, engaging, and add relevant emoji suggestions. Include hashtag suggestions at the end:"
+    twitter: `
+      Rewrite this as an engaging tweet, keeping it under 280 characters. You are a social media expert and ghostwriter. You work for a popular blogger, and your job is to take their blog post and develop a variety of tweets to share ideas from the post.
+Since you are a ghostwriter, you must follow the style, tone, and voice of the blog post as closely as possible. 
+      Guidelines:
+      - Please return the tweets in a list format, with each tweet on a new line, and include at least five tweets.
+      - Use relevant emojis sparingly (1-2 max)
+      - Do not include hashtags
+      - Maintain the key message and call to action
+      - Make it conversational but professional
+      - If there's a link, place it at the end
+      Original text: "${text}"
+    `,
+    
+    linkedin: `
+      Rewrite this as an engaging LinkedIn post. You are a social media expert and ghostwriter. You work for a popular blogger, and your job is to take their blog post and develop a variety of tweets to share ideas from the post.
+Since you are a ghostwriter, you must follow the style, tone, and voice of the blog post as closely as possible.  
+      Guidelines:
+      - Add relevant business context
+      - Break into 2-3 short paragraphs for readability
+      - Maintain a professional yet conversational tone
+      - Include a clear call to action
+      - Add 3-5 relevant hashtags at the end
+      - Optimize for LinkedIn's algorithm by encouraging engagement
+      - Keep under 1,300 characters for optimal reach
+      Original text: "${text}"
+    `,
+    
+    instagram: `
+      Rewrite this as an Instagram caption. You are a social media expert and ghostwriter. You work for a popular blogger, and your job is to take their blog post and develop a variety of tweets to share ideas from the post.
+Since you are a ghostwriter, you must follow the style, tone, and voice of the blog post as closely as possible. 
+      Guidelines:
+      - Make it casual and engaging
+      - Break into short, readable paragraphs
+      - Add 1-2 relevant emojis 
+      - Include a call to action (e.g., "Double tap if you agree" or "Share your thoughts below")
+      - Add line breaks between paragraphs using \n
+      - End with 5-8 relevant hashtags
+      - Keep the tone friendly and authentic
+      - Optimize for Instagram's algorithm by encouraging engagement
+      Original text: "${text}"
+    `
   }
 
   try {
@@ -21,7 +59,7 @@ export async function remixContent(text, platform) {
       max_tokens: 1024,
       messages: [{
         role: "user",
-        content: text ? `${prompts[platform]} "${text}"` : "No text provided"
+        content: prompts[platform] || "No text provided"
       }]
     });
 
