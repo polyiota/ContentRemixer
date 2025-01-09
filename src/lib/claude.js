@@ -2,6 +2,11 @@ import Anthropic from '@anthropic-ai/sdk';
 import { supabase } from './supabase';
 
 const CLAUDE_API_KEY = import.meta.env.VITE_CLAUDE_API_KEY;
+
+if (!CLAUDE_API_KEY) {
+  console.error('Missing Claude API key environment variable')
+}
+
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const anthropic = new Anthropic({
