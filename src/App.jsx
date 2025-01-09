@@ -35,49 +35,63 @@ function App() {
   const [activePlatform, setActivePlatform] = useState('twitter');
 
   const handleRemix = async () => {
-    if (!input.trim()) return
+    if (!input.trim()) return;
 
-    setIsLoading(prev => ({ ...prev, [activePlatform]: true }))
+    setIsLoading(prev => ({ ...prev, [activePlatform]: true }));
     try {
-      const remixedContent = await remixContent(input, activePlatform)
+      const remixedContent = await remixContent(input, activePlatform);
+      if (!remixedContent) {
+        throw new Error('No content received from remix service');
+      }
+
       if (activePlatform === 'twitter') {
+        const parsedTweets = parseTweets(remixedContent);
+        if (parsedTweets.length === 0) {
+          throw new Error('No valid tweets found in the remixed content');
+        }
         setOutputs(prev => ({
           ...prev,
-          [activePlatform]: remixedContent
-        }))
+          [activePlatform]: parsedTweets
+        }));
       } else {
         setOutputs(prev => ({
           ...prev,
-          [activePlatform]: remixedContent[0]
-        }))
+          [activePlatform]: Array.isArray(remixedContent) ? remixedContent[0] : remixedContent
+        }));
       }
     } catch (error) {
-      console.error(`Error remixing for ${activePlatform}:`, error)
+      console.error(`Error remixing for ${activePlatform}:`, error);
+      showToast(`Failed to remix content: ${error.message}`, 'error');
     } finally {
-      setIsLoading(prev => ({ ...prev, [activePlatform]: false }))
+      setIsLoading(prev => ({ ...prev, [activePlatform]: false }));
     }
-  }
+  };
 
   const parseTweets = (tweetText) => {
     if (!tweetText) return [];
     
+    // If tweetText is an array, join it with newlines
+    const textToProcess = Array.isArray(tweetText) ? tweetText.join('\n') : tweetText.toString();
+    
     // Split the text into lines
-    const lines = tweetText.split('\n');
+    const lines = textToProcess.split('\n');
     
-    // Find the index where the actual tweets start (usually after "Here are 5 engaging tweets...")
-    const startIndex = lines.findIndex(line => 
-      line.trim().match(/^\d+\./) // Looks for lines starting with numbers and period
-    );
+    // Find tweets that start with numbers (e.g., "1.", "2.", etc.)
+    const tweets = lines
+      .filter(line => line.trim())  // Remove empty lines
+      .map(line => line.trim())
+      .filter(line => /^\d+\./.test(line))  // Find lines starting with numbers
+      .map(tweet => {
+        // Remove the numbering (e.g., "1. ", "2. ", etc.) from the beginning
+        return tweet.replace(/^\d+\.\s*/, '').trim();
+      });
     
-    // If we found the start of tweets, remove the intro text
-    const tweetLines = startIndex !== -1 
-      ? lines.slice(startIndex).join('\n')
-      : tweetText;
-      
-    // Split on numbered lines and filter empty lines
-    return tweetLines
-      .split(/(?:\r?\n){2,}/)
-      .filter(tweet => tweet.trim() && tweet.trim().match(/^\d+\./)); // Only keep numbered tweets
+    // If no numbered tweets were found, try to use the original content
+    if (tweets.length === 0 && Array.isArray(tweetText)) {
+      return tweetText.map(tweet => tweet.trim());
+    }
+    
+    return tweets;
   };
 
   const getCharacterCount = (tweet) => {
