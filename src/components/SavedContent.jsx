@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { FaTwitter, FaLinkedin, FaInstagram, FaTrash } from 'react-icons/fa';
+import { FaTwitter, FaLinkedin, FaInstagram, FaTrash, FaPencilAlt, FaCheck, FaTimes } from 'react-icons/fa';
 import { useToast } from '../context/ToastContext';
 
 const platformIcons = {
@@ -12,6 +12,8 @@ const platformIcons = {
 export default function SavedContent() {
   const { showToast } = useToast();
   const [savedContent, setSavedContent] = useState([]);
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState('');
   const [isOpen, setIsOpen] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDeleting, setIsDeleting] = useState({});
@@ -59,6 +61,43 @@ export default function SavedContent() {
       setIsDeleting(prev => ({ ...prev, [id]: false }));
     }
   }
+
+  const openTwitterIntent = (tweet) => {
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`;
+    window.open(twitterUrl, '_blank');
+  };
+
+  const handleEdit = (item) => {
+    setEditingId(item.id);
+    setEditText(item.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditText('');
+  };
+
+  const handleSaveEdit = async (id) => {
+    try {
+      const { error } = await supabase
+        .from('saved_content')
+        .update({ content: editText })
+        .match({ id });
+
+      if (error) throw error;
+
+      setSavedContent(prev => 
+        prev.map(item => 
+          item.id === id ? { ...item, content: editText } : item
+        )
+      );
+      showToast('Changes saved successfully');
+      setEditingId(null);
+    } catch (error) {
+      console.error('Error updating content:', error);
+      showToast('Failed to save changes', 'error');
+    }
+  };
 
   return (
     <div className={`fixed right-0 top-0 h-full bg-white shadow-lg transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`} style={{ width: '300px' }}>
@@ -112,25 +151,78 @@ export default function SavedContent() {
                       {new Date(item.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    disabled={isDeleting[item.id]}
-                    className="text-gray-400 hover:text-red-500 transition-colors duration-200
-                             opacity-0 group-hover:opacity-100 focus:opacity-100
-                             disabled:opacity-50"
-                    title="Delete content"
-                  >
-                    {isDeleting[item.id] ? (
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                    {editingId === item.id ? (
+                      <>
+                        <button
+                          onClick={() => handleSaveEdit(item.id)}
+                          className="text-green-500 hover:text-green-600 transition-colors duration-200"
+                          title="Save changes"
+                        >
+                          <FaCheck className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                          title="Cancel edit"
+                        >
+                          <FaTimes className="w-3.5 h-3.5" />
+                        </button>
+                      </>
                     ) : (
-                      <FaTrash className="w-3.5 h-3.5" />
+                      <>
+                        {item.platform === 'twitter' && (
+                          <button
+                            onClick={() => openTwitterIntent(item.content)}
+                            className="text-[#1DA1F2] hover:text-[#1a8cd8] transition-colors duration-200"
+                            title="Tweet this"
+                          >
+                            <FaTwitter className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleEdit(item)}
+                          className="text-gray-400 hover:text-blue-500 transition-colors duration-200"
+                          title="Edit content"
+                        >
+                          <FaPencilAlt className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item.id)}
+                          disabled={isDeleting[item.id]}
+                          className="text-gray-400 hover:text-red-500 transition-colors duration-200
+                                   disabled:opacity-50"
+                          title="Delete content"
+                        >
+                          {isDeleting[item.id] ? (
+                            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                          ) : (
+                            <FaTrash className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </>
                     )}
-                  </button>
+                  </div>
                 </div>
-                <p className="text-sm">{item.content}</p>
+                {editingId === item.id ? (
+                  <textarea
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    className="w-full p-2 border rounded text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    rows={3}
+                    autoFocus
+                  />
+                ) : (
+                  <p className="text-sm">{item.content}</p>
+                )}
+                {editingId === item.id && item.platform === 'twitter' && (
+                  <div className="mt-2 text-sm text-gray-500">
+                    {editText.length}/280 ({280 - editText.length} remaining)
+                  </div>
+                )}
               </div>
             ))
           )}

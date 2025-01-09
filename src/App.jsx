@@ -4,6 +4,7 @@ import { remixContent, saveContent } from './lib/claude'
 import SavedContent from './components/SavedContent';
 import { ContentItem } from './components/ContentDisplay';
 import { useToast } from './context/ToastContext';
+import { FaCheck, FaTimes, FaPencilAlt } from 'react-icons/fa';
 
 function App() {
   const { showToast } = useToast();
@@ -19,6 +20,8 @@ function App() {
     instagram: false
   })
   const [generatedContent, setGeneratedContent] = useState([]);
+  const [editingTweet, setEditingTweet] = useState(null);
+  const [editText, setEditText] = useState('');
 
   const handleRemix = async (platform) => {
     if (!input.trim()) return
@@ -76,6 +79,26 @@ function App() {
   const openTwitterIntent = (tweet) => {
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`;
     window.open(twitterUrl, '_blank');
+  };
+
+  const handleEditTweet = (tweet, index) => {
+    setEditingTweet(index);
+    setEditText(tweet);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTweet(null);
+    setEditText('');
+  };
+
+  const handleSaveEdit = (index) => {
+    const newOutputs = [...outputs.twitter];
+    newOutputs[index] = editText;
+    setOutputs(prev => ({
+      ...prev,
+      twitter: newOutputs
+    }));
+    setEditingTweet(null);
   };
 
   return (
@@ -164,92 +187,145 @@ function App() {
                             className="relative bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"
                           >
                             {/* Tweet content */}
-                            <div className="p-4">
-                              <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                                {tweet.trim()}
-                              </p>
-                            </div>
+                            {editingTweet === index ? (
+                              <div className="p-4">
+                                <textarea
+                                  value={editText}
+                                  onChange={(e) => setEditText(e.target.value)}
+                                  className="w-full p-2 border rounded text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                  rows={3}
+                                  autoFocus
+                                />
+                                <div className="mt-2 flex justify-between items-center">
+                                  <span className="text-sm text-gray-500">
+                                    {editText.length}/280 ({280 - editText.length} remaining)
+                                  </span>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => handleSaveEdit(index)}
+                                      className="text-green-500 hover:text-green-600 transition-colors duration-200"
+                                      title="Save changes"
+                                    >
+                                      <FaCheck className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={handleCancelEdit}
+                                      className="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                                      title="Cancel edit"
+                                    >
+                                      <FaTimes className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="p-4">
+                                <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+                                  {tweet.trim()}
+                                </p>
+                              </div>
+                            )}
 
-                            {/* Character count */}
-                            <div className="px-4 pb-2">
-                              <span className="text-sm text-gray-500 dark:text-gray-400">
-                                {tweet.length}/280 ({280 - tweet.length} remaining)
-                              </span>
-                            </div>
+                            {/* Character count - only show when not editing */}
+                            {editingTweet !== index && (
+                              <div className="px-4 pb-2">
+                                <span className="text-sm text-gray-500 dark:text-gray-400">
+                                  {tweet.length}/280 ({280 - tweet.length} remaining)
+                                </span>
+                              </div>
+                            )}
 
                             {/* Action buttons in a vertical stack */}
                             <div className="px-4 pb-4 flex flex-col gap-2">
-                              <button
-                                onClick={() => navigator.clipboard.writeText(tweet.trim())}
-                                className="inline-flex items-center justify-center gap-1.5 px-4 py-2
-                                         bg-gray-100 hover:bg-gray-200 
-                                         dark:bg-gray-700 dark:hover:bg-gray-600 
-                                         text-gray-700 dark:text-gray-300
-                                         rounded-md transition-colors duration-200"
-                              >
-                                <svg 
-                                  className="w-4 h-4" 
-                                  fill="none" 
-                                  stroke="currentColor" 
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path 
-                                    strokeLinecap="round" 
-                                    strokeLinejoin="round" 
-                                    strokeWidth={2} 
-                                    d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" 
-                                  />
-                                </svg>
-                                Copy
-                              </button>
+                              {/* Only show edit button when not editing */}
+                              {editingTweet !== index && (
+                                <div className="flex justify-end gap-2 mb-2">
+                                  <button
+                                    onClick={() => handleEditTweet(tweet, index)}
+                                    className="text-gray-400 hover:text-blue-500 transition-colors duration-200"
+                                    title="Edit tweet"
+                                  >
+                                    <FaPencilAlt className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                              
+                              {/* Only show other buttons when not editing */}
+                              {editingTweet !== index && (
+                                <>
+                                  <button
+                                    onClick={() => navigator.clipboard.writeText(tweet.trim())}
+                                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2
+                                             bg-gray-100 hover:bg-gray-200 
+                                             dark:bg-gray-700 dark:hover:bg-gray-600 
+                                             text-gray-700 dark:text-gray-300
+                                             rounded-md transition-colors duration-200"
+                                  >
+                                    <svg 
+                                      className="w-4 h-4" 
+                                      fill="none" 
+                                      stroke="currentColor" 
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path 
+                                        strokeLinecap="round" 
+                                        strokeLinejoin="round" 
+                                        strokeWidth={2} 
+                                        d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" 
+                                      />
+                                    </svg>
+                                    Copy
+                                  </button>
 
-                              <button
-                                onClick={() => openTwitterIntent(tweet)}
-                                className="inline-flex items-center justify-center gap-1.5 px-4 py-2
-                                         bg-[#1DA1F2] hover:bg-[#1a8cd8]
-                                         text-white
-                                         rounded-md transition-colors duration-200"
-                              >
-                                <svg 
-                                  className="w-4 h-4" 
-                                  fill="currentColor" 
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-                                </svg>
-                                Tweet
-                              </button>
+                                  <button
+                                    onClick={() => openTwitterIntent(tweet)}
+                                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2
+                                             bg-[#1DA1F2] hover:bg-[#1a8cd8]
+                                             text-white
+                                             rounded-md transition-colors duration-200"
+                                  >
+                                    <svg 
+                                      className="w-4 h-4" 
+                                      fill="currentColor" 
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
+                                    </svg>
+                                    Tweet
+                                  </button>
 
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    await saveContent(tweet.trim(), 'twitter');
-                                    showToast('Tweet saved successfully!');
-                                  } catch (error) {
-                                    console.error('Error saving tweet:', error);
-                                    showToast('Failed to save tweet', 'error');
-                                  }
-                                }}
-                                className="inline-flex items-center justify-center gap-1.5 px-4 py-2
-                                         bg-green-500 hover:bg-green-600
-                                         text-white
-                                         rounded-md transition-colors duration-200"
-                              >
-                                <svg 
-                                  className="w-4 h-4" 
-                                  fill="none" 
-                                  stroke="currentColor" 
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path 
-                                    strokeLinecap="round" 
-                                    strokeLinejoin="round" 
-                                    strokeWidth={2} 
-                                    d="M5 13l4 4L19 7" 
-                                  />
-                                </svg>
-                                Save
-                              </button>
+                                  <button
+                                    onClick={async () => {
+                                      try {
+                                        await saveContent(tweet.trim(), 'twitter');
+                                        showToast('Tweet saved successfully!');
+                                      } catch (error) {
+                                        console.error('Error saving tweet:', error);
+                                        showToast('Failed to save tweet', 'error');
+                                      }
+                                    }}
+                                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2
+                                             bg-green-500 hover:bg-green-600
+                                             text-white
+                                             rounded-md transition-colors duration-200"
+                                  >
+                                    <svg 
+                                      className="w-4 h-4" 
+                                      fill="none" 
+                                      stroke="currentColor" 
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path 
+                                        strokeLinecap="round" 
+                                        strokeLinejoin="round" 
+                                        strokeWidth={2} 
+                                        d="M5 13l4 4L19 7" 
+                                      />
+                                    </svg>
+                                    Save
+                                  </button>
+                                </>
+                              )}
                             </div>
 
                             {/* Divider for visual separation */}
