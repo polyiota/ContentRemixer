@@ -3,8 +3,18 @@ import { remixContent, saveContent } from './lib/claude'
 import SavedContent from './components/SavedContent';
 import { ContentItem } from './components/ContentDisplay';
 import { useToast } from './context/ToastContext';
-import { FaCheck, FaTimes, FaPencilAlt } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaPencilAlt, FaLinkedin, FaInstagram } from 'react-icons/fa';
 import ContentToggle from './components/ContentToggle';
+
+const XIcon = ({ className }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    className={className}
+    fill="currentColor"
+  >
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
 
 function App() {
   const { showToast } = useToast();
@@ -80,6 +90,19 @@ function App() {
   const openTwitterIntent = (tweet) => {
     const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweet)}`;
     window.open(twitterUrl, '_blank');
+  };
+
+  const openLinkedInShare = (content) => {
+    // LinkedIn's sharing URL
+    const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}&summary=${encodeURIComponent(content)}`;
+    window.open(linkedInUrl, '_blank');
+  };
+
+  const openInstagramShare = (content) => {
+    // Since Instagram doesn't have a direct share URL, we'll copy the content and open Instagram
+    navigator.clipboard.writeText(content);
+    window.open('https://instagram.com', '_blank');
+    showToast('Content copied - paste it into Instagram');
   };
 
   const handleEditTweet = (tweet, index) => {
@@ -167,7 +190,7 @@ function App() {
             {outputs[activePlatform] && (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 capitalize">
-                  {activePlatform} Output
+                  {activePlatform === 'twitter' ? 'X' : activePlatform} Output
                 </h2>
                 <div className="bg-gray-50 dark:bg-gray-700 rounded p-3">
                   {activePlatform === 'twitter' ? (
@@ -224,9 +247,9 @@ function App() {
                                 </div>
                               )}
 
-                              <div className="px-4 pb-4 flex flex-col gap-2">
+                              <div className="px-4 pb-4">
                                 {editingTweet !== index && (
-                                  <div className="flex justify-end gap-2">
+                                  <div className="flex justify-end items-center gap-2">
                                     <button
                                       onClick={() => handleEditTweet(tweet, index)}
                                       className="text-gray-400 hover:text-blue-500 transition-colors duration-200"
@@ -234,47 +257,48 @@ function App() {
                                     >
                                       <FaPencilAlt className="w-3.5 h-3.5" />
                                     </button>
+
+                                    <button
+                                      onClick={() => navigator.clipboard.writeText(tweet.trim())}
+                                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5
+                                               bg-gray-100 hover:bg-gray-200 
+                                               dark:bg-gray-700 dark:hover:bg-gray-600 
+                                               text-gray-700 dark:text-gray-300
+                                               text-sm rounded-md transition-colors duration-200"
+                                    >
+                                      Copy
+                                    </button>
+
+                                    <button
+                                      onClick={() => openTwitterIntent(tweet)}
+                                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5
+                                               bg-gray-900 hover:bg-gray-800
+                                               text-white
+                                               text-sm rounded-md transition-colors duration-200"
+                                    >
+                                      <XIcon className="w-3.5 h-3.5" />
+                                      Post to X
+                                    </button>
+
+                                    <button
+                                      onClick={async () => {
+                                        try {
+                                          await saveContent(tweet.trim(), 'twitter');
+                                          showToast('Post saved successfully!');
+                                        } catch (error) {
+                                          console.error('Error saving post:', error);
+                                          showToast('Failed to save post', 'error');
+                                        }
+                                      }}
+                                      className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5
+                                               bg-green-500 hover:bg-green-600
+                                               text-white
+                                               text-sm rounded-md transition-colors duration-200"
+                                    >
+                                      Save
+                                    </button>
                                   </div>
                                 )}
-
-                                <button
-                                  onClick={() => navigator.clipboard.writeText(tweet.trim())}
-                                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2
-                                           bg-gray-100 hover:bg-gray-200 
-                                           dark:bg-gray-700 dark:hover:bg-gray-600 
-                                           text-gray-700 dark:text-gray-300
-                                           rounded-md transition-colors duration-200"
-                                >
-                                  Copy
-                                </button>
-
-                                <button
-                                  onClick={() => openTwitterIntent(tweet)}
-                                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2
-                                           bg-[#1DA1F2] hover:bg-[#1a8cd8]
-                                           text-white
-                                           rounded-md transition-colors duration-200"
-                                >
-                                  Tweet
-                                </button>
-
-                                <button
-                                  onClick={async () => {
-                                    try {
-                                      await saveContent(tweet.trim(), 'twitter');
-                                      showToast('Tweet saved successfully!');
-                                    } catch (error) {
-                                      console.error('Error saving tweet:', error);
-                                      showToast('Failed to save tweet', 'error');
-                                    }
-                                  }}
-                                  className="inline-flex items-center justify-center gap-1.5 px-4 py-2
-                                           bg-green-500 hover:bg-green-600
-                                           text-white
-                                           rounded-md transition-colors duration-200"
-                                >
-                                  Save
-                                </button>
                               </div>
                             </>
                           )}
@@ -287,17 +311,45 @@ function App() {
                         {outputs[activePlatform] || 'Remixed content will appear here...'}
                       </p>
                       {outputs[activePlatform] && (
-                        <div className="mt-4 flex gap-2">
+                        <div className="mt-4 flex justify-end gap-2">
                           <button
                             onClick={() => navigator.clipboard.writeText(outputs[activePlatform])}
-                            className="inline-flex items-center gap-1 px-3 py-1 rounded-md
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5
                                      bg-gray-100 hover:bg-gray-200 
                                      dark:bg-gray-700 dark:hover:bg-gray-600 
                                      text-gray-700 dark:text-gray-300
-                                     transition-colors duration-200"
+                                     text-sm rounded-md transition-colors duration-200"
                           >
                             Copy
                           </button>
+
+                          {activePlatform === 'linkedin' && (
+                            <button
+                              onClick={() => openLinkedInShare(outputs[activePlatform])}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5
+                                       bg-[#0A66C2] hover:bg-[#004182]
+                                       text-white
+                                       text-sm rounded-md transition-colors duration-200"
+                            >
+                              <FaLinkedin className="w-3.5 h-3.5" />
+                              Share
+                            </button>
+                          )}
+
+                          {activePlatform === 'instagram' && (
+                            <button
+                              onClick={() => openInstagramShare(outputs[activePlatform])}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5
+                                       bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737]
+                                       hover:opacity-90
+                                       text-white
+                                       text-sm rounded-md transition-colors duration-200"
+                            >
+                              <FaInstagram className="w-3.5 h-3.5" />
+                              Share
+                            </button>
+                          )}
+
                           <button
                             onClick={async () => {
                               try {
@@ -308,10 +360,10 @@ function App() {
                                 showToast(`Failed to save ${activePlatform} content`, 'error');
                               }
                             }}
-                            className="inline-flex items-center gap-1 px-3 py-1 rounded-md
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5
                                      bg-green-500 hover:bg-green-600
                                      text-white
-                                     transition-colors duration-200"
+                                     text-sm rounded-md transition-colors duration-200"
                           >
                             Save
                           </button>

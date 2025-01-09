@@ -3,8 +3,18 @@ import { supabase } from '../lib/supabase';
 import { FaTwitter, FaLinkedin, FaInstagram, FaTrash, FaPencilAlt, FaCheck, FaTimes } from 'react-icons/fa';
 import { useToast } from '../context/ToastContext';
 
+const XIcon = ({ className }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    className={className}
+    fill="currentColor"
+  >
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
+
 const platformIcons = {
-  twitter: <FaTwitter className="text-blue-400" />,
+  twitter: <XIcon className="text-gray-900 dark:text-white" />,
   linkedin: <FaLinkedin className="text-blue-700" />,
   instagram: <FaInstagram className="text-pink-600" />
 };
@@ -99,6 +109,17 @@ export default function SavedContent() {
     }
   };
 
+  const openLinkedInShare = (content) => {
+    const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}&summary=${encodeURIComponent(content)}`;
+    window.open(linkedInUrl, '_blank');
+  };
+
+  const openInstagramShare = (content) => {
+    navigator.clipboard.writeText(content);
+    window.open('https://instagram.com', '_blank');
+    showToast('Content copied - paste it into Instagram');
+  };
+
   return (
     <div className={`fixed right-0 top-0 h-full bg-white shadow-lg transition-transform duration-300 ${isOpen ? 'translate-x-0' : 'translate-x-full'}`} style={{ width: '300px' }}>
       <button
@@ -174,10 +195,28 @@ export default function SavedContent() {
                         {item.platform === 'twitter' && (
                           <button
                             onClick={() => openTwitterIntent(item.content)}
-                            className="text-[#1DA1F2] hover:text-[#1a8cd8] transition-colors duration-200"
-                            title="Tweet this"
+                            className="text-gray-900 dark:text-white hover:text-gray-700 dark:hover:text-gray-300 transition-colors duration-200"
+                            title="Post on X"
                           >
-                            <FaTwitter className="w-3.5 h-3.5" />
+                            <XIcon className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {item.platform === 'linkedin' && (
+                          <button
+                            onClick={() => openLinkedInShare(item.content)}
+                            className="text-[#0A66C2] hover:text-[#004182] transition-colors duration-200"
+                            title="Share on LinkedIn"
+                          >
+                            <FaLinkedin className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {item.platform === 'instagram' && (
+                          <button
+                            onClick={() => openInstagramShare(item.content)}
+                            className="text-[#E4405F] hover:text-[#D93248] transition-colors duration-200"
+                            title="Share on Instagram"
+                          >
+                            <FaInstagram className="w-3.5 h-3.5" />
                           </button>
                         )}
                         <button
